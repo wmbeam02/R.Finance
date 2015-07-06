@@ -1,0 +1,21 @@
+library(quantmod)
+# Simple charting example
+getSymbols(c("BX"))
+barChart(AMZN,theme='white.mono',bar.type='hlc')
+
+# More complex charting with some technicals added
+getSymbols("BX")
+chartSeries(BX, subset='last 6 months')
+addBBands(n = 20, sd = 2, ma = "SMA", draw = 'bands', on = -1)
+
+# If I wanted the S&P500 the Yahoo.Finance ticker is "^GSPC" - have to be sure to include the hat.
+
+# When you're making custom indexes be sure to use the <merge.xts> function.  It combines different date objects
+# based on time stamps and fills missing values. Will need to do a separate FAQ for XTS but here's a little example
+library(xts)
+# Where <nasdaq100> is a list of comma sep ticker symbols 
+nasdaq100 <- xts(nasdaq100,order.by=as.Date(rownames(nasdaq100)))
+nasdaq100 <- as.data.frame(merge(nasdaq100, lm1=lag(nasdaq100[,outcomeSymbol],-1)))
+nasdaq100$outcome <- ifelse(nasdaq100[,paste0(outcomeSymbol,'.1')] > nasdaq100[,outcomeSymbol], 1, 0)
+# remove shifted down volume field as we don't care by the value
+nasdaq100 <- nasdaq100[,!names(nasdaq100) %in% c(paste0(outcomeSymbol,'.1'))]
