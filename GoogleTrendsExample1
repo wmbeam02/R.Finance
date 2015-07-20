@@ -1,0 +1,74 @@
+# I pulled a single Trend result, cleaned it up and then pulled SPY data from Yahoo, cleaned it and joined it to the GT
+# part to look for correlations.
+
+setwd('C:/Users/Matt/Desktop/R Work/Practice')
+currentDate=Sys.Date()
+filename='StockMarketGT.csv'
+con=file(filename, open='r')
+count=0
+i=1
+dataToString=''
+while( length( eachLine <- readLines( con, n=1, warn=F )) > 0 ){
+  count = count+1
+  
+  if ( count<3 ){
+    #file naming through automation
+    filename=paste0( filename, eachLine )
+  }
+  # The double brackets below are pulling each of the elements in the first vector inside rowheaders and 
+  # this allows strsplit to notate them as separate strings.
+  if ( count==5 ) rowheaders=strsplit( eachLine, ',' )[[1]]
+  
+  if( count>5 ){
+    # the <break> portion of this logic is just saying that if you take out any commas and there isn't anything left
+    # in the string then we're done.
+    if ( gsub( pattern=',', x=eachLine, replacement='' ) == '') break
+    
+    dataToString=paste0( dataToString, eachLine, '\n' )
+  }
+}
+close( con )
+
+df=read.table( textConnection( dataToString ), sep=',', header=F, stringsAsFactors=F )
+names( df ) = rowheaders
+df$Start.Date = as.Date( substr( df[,1],1, 10 ))
+df$End.Date = as.Date( substr( df[,1], 14, 23 ))
+df$Year = substr( df$Start.Date, 1, 4 )
+df$V1=NULL
+df$Stock.Market=df$V2
+df$V2=NULL
+# manually downloaded historic S&P daily closes from Yahoo but next time I'll use quantmod and have it build the connection and do it real time
+df_SP500=read.csv( 'S$P_Historic_OHLC.csv', )
+df_SP500$Date=as.Date( df_SP500$Date )
+# Going to loop over the remaining rows to give them all a numeric class
+for ( i in 2:7 ){
+  df_SP500[,i]=as.numeric( df_SP500[,i] )
+}
+for (i in 1:( length( df_SP500 ))){
+  if (i==1){
+    df_SP500$Difference[i]=( df_SP500$High[i]-df_SP500$Low[i] )
+  }
+  else{
+    df_SP500$Difference[i]=( df_SP500$High[i]-df_SP500$Low[(i-1)] )
+  }
+}
+# The weekly range of the Google Trends data is Sun thru Sat so neither of those date values match to a trading date range so I'm adding
+# a column that equates to a Tue to merge these 2 different tables.
+df$Date=( df$Start.Date+2 )
+df_merge1=merge( df, df_SP500 )
+# Need to have some way to remove extreme outliers in the Google Trends portion, here's a function to do that:
+remove_outliers=function( X, na.rm=T, ... ){
+  qnt=quantile( X, probs=c( .25, .75 ), na.rm=na.rm, ... )
+  H=1.5*IQR( X, na.rm=na.rm )
+  y=x
+  y[ x<( qnt[1]-H )]=NA
+  y[ x>( qnt[2]+H )]=NA
+  y
+}
+# Time to draw pictures and look for correlations 
+# Correlations first (Pearson, spearman, kendall)
+df_cor=df_merge1[,-(1:4)]
+df_cor=df_cor[,]
+cor( df_cor )
+cor( df_cor, method='spearman' )
+cor( df_cor, method='kendall' )
