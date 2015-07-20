@@ -1,0 +1,83 @@
+# https://quantstrattrader.wordpress.com/category/quantstrat/
+# 
+
+require(quantmod)
+require(quantstrat)
+require(IKTrading)
+
+getSymbols("UNG", from="1990-01-01")
+getSymbols("DGAZ", from="1990-01-01")
+getSymbols("UGAZ", from="1990-01-01")
+UNG <- UNG["2012-02-22::"]
+UGAZ <- UGAZ["2012-02-22::"]
+
+spread <- 3*OHLC(UNG) - OHLC(UGAZ)
+
+initDate='1990-01-01'
+currency('USD')
+Sys.setenv(TZ="UTC")
+symbols <- c("spread")
+stock(symbols, currency="USD", multiplier=1)
+
+strategy.st <- portfolio.st <- account.st <-"spread_strategy_done_better"
+rm.strat(portfolio.st)
+rm.strat(strategy.st)
+initPortf(portfolio.st, symbols=symbols, initDate=initDate, currency='USD')
+initAcct(account.st, portfolios=portfolio.st, initDate=initDate, currency='USD')
+initOrders(portfolio.st, initDate=initDate)
+strategy(strategy.st, store=TRUE)
+
+#### paramters
+
+nEMA = 20
+
+### indicator
+
+add.indicator(strategy.st, name="EMA",
+              arguments=list(x=quote(Cl(mktdata)), n=nEMA),
+              label="ema")
+
+### signals
+
+add.signal(strategy.st, name="sigCrossover",
+           arguments=list(columns=c("Close", "EMA.ema"), relationship="gt"),
+           label="longEntry")
+
+add.signal(strategy.st, name="sigCrossover",
+           arguments=list(columns=c("Close", "EMA.ema"), relationship="lt"),
+           label="longExit")
+
+### rules
+
+add.rule(strategy.st, name="ruleSignal", 
+         arguments=list(sigcol="longEntry", sigval=TRUE, ordertype="market", 
+                        orderside="long", replace=FALSE, prefer="Open", orderqty=1), 
+         type="enter", path.dep=TRUE)
+
+add.rule(strategy.st, name="ruleSignal", 
+         arguments=list(sigcol="longExit", sigval=TRUE, orderqty="all", ordertype="market", 
+                        orderside="long", replace=FALSE, prefer="Open"), 
+         type="exit", path.dep=TRUE)
+
+#apply strategy
+t1 <- Sys.time()
+out <- applyStrategy(strategy=strategy.st,portfolios=portfolio.st)
+t2 <- Sys.time()
+print(t2-t1)
+
+#set up analytics
+updatePortf(portfolio.st)
+dateRange <- time(getPortfolio(portfolio.st)$summary)[-1]
+updateAcct(portfolio.st,dateRange)
+updateEndEq(account.st)
+
+#trade statistics
+tStats <- tradeStats(Portfolios = portfolio.st, use="trades", inclZeroDays=FALSE)
+tStats[,4:ncol(tStats)] <- round(tStats[,4:ncol(tStats)], 2)
+print(data.frame(t(tStats[,-c(1,2)])))
+(aggPF <- sum(tStats$Gross.Profits)/-sum(tStats$Gross.Losses))
+(aggCorrect <- mean(tStats$Percent.Positive))
+(numTrades <- sum(tStats$Num.Trades))
+(meanAvgWLR <- mean(tStats$Avg.WinLoss.Ratio[tStats$Avg.WinLoss.Ratio < Inf], na.rm=TRUE))
+
+print(data.frame(t(tStats[,-c(1,2)])))
