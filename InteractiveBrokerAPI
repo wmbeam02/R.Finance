@@ -1,0 +1,35 @@
+# Can't use R as a trading platform (as so many sites told me before I did all this). The code below does connect to the IB
+# socket and does pull market data for SBUX but since it's single threaded it can't break out of that request to clean the
+# data stream and do any strategy logic. Headed back to Java for this I suppose.
+# Also the beginner code I did for the time handling is bush-league, should use lubridate and xts for that logic now.
+
+library (IBrokers)
+setwd('C:/Users/Matt/Desktop/R Work/IB')
+tws=twsConnect(clientId='1220')
+# reqMktData(tws, twsEquity("SBUX"), CALLBACK=NULL, file="SBUX.dat")
+tws
+reqCurrentTime(tws)
+serverVersion(tws)
+twsDisconnect(tws)
+
+#______________________________________________________________________________
+# Here's the start of the "time control" portion of the code:
+
+# stophour=1801;workhours=seq(900,1800,100)
+# hour=substr( Sys.time(),12,13 );min=substr( Sys.time(),15,16 )
+# timenow=as.numeric( paste( hour,min,sep=' '))
+# while( timenow<stophour ){
+#   hour=substr( Sys.time(),12,13 );min=substr( Sys.time(),15,16 )
+#   timenow=as.numeric( paste( hour,min,sep='' ))
+#   if( is.element(timenow,workhours )){
+#     # MY LOGIC HERE
+#   }
+# }
+#_______________________________________________________________________________
+# Here's the start of the "save with date info in file name" portion of the code:
+
+# currentDate <- Sys.Date() 
+# csvFileName <- paste0( "C:/R/Remake/XPX",currentDate,".csv" ) 
+# write.csv( S1X.sub, file=csvFileName ) 
+#_______________________________________________________________________________
+
