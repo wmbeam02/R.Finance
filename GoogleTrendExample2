@@ -1,0 +1,43 @@
+# Pulled two trends (oil pricing vs. gasoline pricing), cleaned the data and then charted them against each other.  Not 
+# happy with the way the plot looks but want to focus on quantstrat, quantmod & xts/zoo functionality more than ggplot2
+
+setwd('C:/Users/Matt/Desktop/R Work/Practice')
+filename='OilvsGasGT.csv'
+con=file( filename, open='r' )
+count=0
+segment.count=1
+data.reader=''
+while( length( each.line<-readLines( con, n=1, warn=F ))>0 ){
+  count = count+1
+  
+  if ( count<3 ){
+    #file naming through automation
+    filename=paste0( filename, each.line )
+  }
+  # The double brackets below are pulling each of the elements in the first vector inside rowheaders and 
+  # this allows strsplit to notate them as separate strings.
+  if ( count==5 ) rowheaders=strsplit( each.line, ',' )[[1]]
+  
+  if( count>5 ){
+    # the <break> portion of this logic is just saying that if you take out any commas and there isn't anything left
+    # in the string then we're done.
+    if ( gsub( pattern=',', x=each.line, replacement='' ) == '') break
+        
+    data.reader=paste0( data.reader, each.line, '\n' )
+  }
+  
+}
+close( con )
+
+oilgasdf=read.table(textConnection( data.reader ), sep=',', stringsAsFactors=F, header=F)
+names( oilgasdf ) = rowheaders
+oilgasdf$Start.Date = as.Date( substr( oilgasdf[,1],1, 10 ))
+oilgasdf$End.Date = as.Date( substr( oilgasdf[,1], 14, 23 ))
+library('lubridate')
+oilgasdf$Year=year( oilgasdf$Start.Date )
+oilgasdf$Week=NULL
+oilgasdf=oilgasdf[,c( 3,4,5,1,2 )]
+names( oilgasdf )[4:5]=c( 'Oil', 'Gasoline' )
+library('ggplot2')
+g=ggplot( oilgasdf, aes( x=oilgasdf$Oil, y=oilgasdf$Gasoline ))+geom_point()
+g
