@@ -1,0 +1,13 @@
+# This is just a test with some free tick data I found online, which is hard to get - everybody wants to charge for 
+# this sort of data
+
+setwd( 'C:\\Users\\Matt\\Desktop\\R Work\\Practice' )
+AAPL.Last=read.table( 'AAPL.Last.txt', stringsAsFactors=F, sep=';' )
+names( AAPL.Last )=c( 'Time', 'Price', 'Size' )
+AAPL.Last$Time=strptime( AAPL.Last$Time, '%Y%m%d %H%M%S' )
+
+library( 'xts' )
+library( 'quantmod' )
+AAPL=as.xts( AAPL.Last[ ,-1], order.by=AAPL.Last[ ,1] )
+
+chartSeries( AAPL )
