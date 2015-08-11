@@ -1,0 +1,73 @@
+# Here's a function I wrote for taking raw tick data (LAST) and making a data frame of OHLC rows for whatever tick value I want
+
+raw=read.csv( 'scenario4.csv', stringsAsFactors=F )
+raw=raw[, -1]
+tick=data.frame( Time=integer(0), Open=integer(0), High=integer(0), Low=integer(0), Close=integer(0), count=integer(0), raw.id=integer(0), tick.id=integer(0), OHLC.count=integer(0) )
+tick[1,1:9]=c( 0, 0, 0, 0, 0, 0, 1, 1, 1 )
+
+OHLC=function( tick.wanted=1500, raw.df, tick.df, ... ){  
+  for (i in seq( tick.df[ 1, 7 ] : nrow( raw.df ))) {
+    if ( ( tick.df[ 1, 9 ] == 1 ) && ( tick.df[ 1, 6 ] + raw.df[ tick.df[ 1, 7 ], 3 ] < tick.wanted ) && (( tick.df[ 1, 6 ] + sum ( raw.df[ tick.df[ 1, 7 ] : nrow( raw.df ), 3 ] )) > tick.wanted )) {
+        tick.df[ tick.df[ 1, 8 ], 1 ] = raw.df[ tick.df[ 1, 7 ], 1 ]
+        tick.df[ tick.df[ 1, 8 ], 2 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        tick.df[ tick.df[ 1, 8 ], 3 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        tick.df[ tick.df[ 1, 8 ], 4 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        # Increment raw.id
+        tick.df[ 1, 6 ] = ( tick.df[ 1, 6 ] + raw.df[ tick.df[ 1, 7 ], 3 ] )
+        tick.df[ 1, 7 ] = tick.df[ 1, 7 ] + 1
+        tick.df[ 1, 9 ] = tick.df[ 1, 9 ] + 1 
+      } else if ( ( tick.df[ 1, 6 ] + raw.df[ tick.df[ 1, 7 ], 3 ] ) < tick.wanted && (( tick.df[ 1, 6 ] + sum ( raw.df[ tick.df[ 1, 7 ] : nrow( raw.df ), 3 ] )) > tick.wanted )){
+        # Looping over High and Low to test if the current raw.df$Price is < or > than placeholder values
+        if ( tick.df[ tick.df[ 1, 8 ], 3 ] < raw.df[ tick.df[ 1, 7 ], 2 ] ){
+          tick.df[ tick.df[ 1, 8 ], 3 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        } else if ( tick.df[ tick.df[ 1, 8 ], 4 ] > raw.df[ tick.df[ 1, 7 ], 2 ] ){
+          tick.df[ tick.df[ 1, 8 ], 4 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        } 
+        # Incrementing count, OHLC.count & raw.id
+        tick.df[ 1, 6 ] = ( tick.df[ 1, 6 ] + raw.df[ tick.df[ 1, 7 ], 3 ] )
+        tick.df[ 1, 9 ] = ( tick.df[ 1, 9 ] + 1 )
+        tick.df[ 1, 7 ] = ( tick.df[ 1, 7 ] + 1 )
+      }else if ( ( tick.df[ 1, 9 ] == 1 ) && ( tick.df[ 1, 6 ] + raw.df[ tick.df[ 1, 7 ], 3 ] >= tick.wanted ) && (( tick.df[ 1, 6 ] + sum ( raw.df[ tick.df[ 1, 7 ] : nrow( raw.df ), 3 ] )) > tick.wanted )){
+        # 1st have to check outlier scenario in which it's first tick of the current tick.df row
+        tick.df[ tick.df[ 1, 8 ], 1 ] = raw.df[ tick.df[ 1, 7 ], 1 ]
+        tick.df[ tick.df[ 1, 8 ], 2 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        tick.df[ tick.df[ 1, 8 ], 3 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        tick.df[ tick.df[ 1, 8 ], 4 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        tick.df[ tick.df[ 1, 8 ], 5 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        # Resetting count & OHLC.count AND incrementing raw.id & tick.id 
+        tick.df[ 1, 6 ] = ( ( tick.df[ 1, 6 ] + raw.df[ tick.df[ 1, 7 ], 3 ] ) - tick.wanted )
+        tick.df[ 1, 9 ] = ( tick.df[ 1, 9 ] + 1 )
+        tick.df[ 1, 7 ] = ( tick.df[ 1, 7 ] + 1 )
+        tick.df[ 1, 8 ] = ( tick.df[ 1, 8 ] + 1 )
+      }else if((( tick.df[ 1, 6 ] + raw.df[ tick.df[ 1, 7 ], 3 ] ) > tick.wanted ) && (( tick.df[ 1, 6 ] + sum ( raw.df[ tick.df[ 1, 7 ] : nrow( raw.df ), 3 ] )) > tick.wanted )){
+        # Looping over High and Low to test if the current raw.df$Price is < or > than placeholder values
+        if ( tick.df[ tick.df[ 1, 8 ], 3 ] < raw.df[ tick.df[ 1, 7 ], 2 ]){
+          tick.df[ tick.df[ 1, 8 ], 3 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        }else if( tick.df[ tick.df[ 1, 8 ], 4 ] > raw.df[ tick.df[ 1, 7 ], 2 ] ){
+          tick.df[ tick.df[ 1, 8 ], 4 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        } 
+        # Resetting count & OHLC.count AND incrementing raw.id & tick.id putting this raw.df$Price into tick.df$Close for this tick bar
+        tick.df[ tick.df[ 1, 8 ], 5 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        # Going to change the current raw.df$Size to represent the remainder & leave the raw.id unchanged so that remainder gets pulled
+        # in as the tick.df$Open in the next run
+        raw.df[ tick.df[ 1, 7 ], 3 ] = ( raw.df[ tick.df[ 1, 7 ], 3 ] - ( tick.wanted - tick.df[ 1, 6 ] ))
+        tick.df[ 1, 6 ] = 0
+        tick.df[ 1, 9 ] = 1
+        tick.df[ 1, 8 ] = ( tick.df[ 1, 8 ] + 1 )
+      }else if(( tick.df[ 1, 6 ] + raw.df[ tick.df[ 1, 7 ], 3 ] ) == tick.wanted ){
+        # Looping over High and Low to test if the current raw.df$Price is < or > than placeholder values
+        if ( tick.df[ tick.df[ 1, 8 ], 3 ] < raw.df[ tick.df[ 1, 7 ], 2 ]){
+          tick.df[ tick.df[ 1, 8 ], 3 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        }else if( tick.df[ tick.df[ 1, 8 ], 4 ] > raw.df[ tick.df[ 1, 7 ], 2 ] ){
+          tick.df[ tick.df[ 1, 8 ], 4 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        } 
+        # Resetting count & OHLC.count AND incrementing raw.id & tick.id putting this raw.df$Price into tick.df$Close for this tick bar
+        tick.df[ tick.df[ 1, 8 ], 5 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
+        tick.df[ 1, 6 ] = 0
+        tick.df[ 1, 7 ] = ( tick.df[ 1, 7 ] + 1 )
+        tick.df[ 1, 8 ] = ( tick.df[ 1, 8 ] + 1 )
+        tick.df[ 1, 9 ] = 1
+      }
+    }
+  return( tick.df )
+}
