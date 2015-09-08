@@ -1,0 +1,163 @@
+library(IBrokers)
+library(RMySQL)
+library(xts)
+library(quantmod)
+library(TTR)
+
+rm(list=ls())
+setwd( 'C:\\Users' )
+TrdSize = 1
+LossCounter = 0
+OrderID = 1
+Position = 0
+# creating schema for daily data dump from DTN
+conn=dbConnect( MySQL(), user='root', password='password', host='localhost' )
+dbSendQuery( conn, 'CREATE DATABASE test' )
+dbSendQuery( conn, "USE test" )
+conn=dbConnect( MySQL(), user='root', password='password', host='localhost', dbname='test' )
+# dbSendQuery( conn, 'drop table if exists emini' )
+conn=dbConnect( MySQL(), user='root', password='password', host='localhost', dbname='test' )
+dbSendQuery( conn, "CREATE TABLE IF NOT EXISTS raw (id INT NOT NULL AUTO_INCREMENT, time CHAR(12), last DECIMAL(6,2), volume INT, PRIMARY KEY(id))") 
+# will need to move this 'writeTable' snippet to the bottom of the code and create a new table and write emini1500 at EOD
+# emini4500 too???
+# dbWriteTable( conn, 'emini1500', emini1500, row.names=F )
+
+start = paste(Sys.Date(), ' 09:00:00 CDT')
+end = paste(Sys.Date(), ' 18:40:00 CDT')
+
+while (( Sys.time() > start ) && ( Sys.time() < end )){
+  raw = fetch( dbSendQuery( conn, "SELECT time, last, volume FROM raw" ))
+  dbDisconnect( conn )
+   
+  emini = data.frame( Time=integer(0), Open=integer(0), High=integer(0), Low=integer(0), Close=integer(0), count=integer(0), raw.id=integer(0), tick.id=integer(0), OHLC.count=integer(0) )
+  emini[1,1:9]=c( 0, 0, 0, 0, 0, 0, 1, 1, 1 )
+  emini = OHLC( tick.wanted = 500, raw.df = raw, tick.df = emini )
+  emini500 = emini[ , 1:5 ]
+  emini500 = emini500[ complete.cases( emini500 ), ]
+  # had to use $columnName notation here, bracket system wasn't working for some reason
+  emini500$Time = strptime( emini500$Time, format='%Y-%m-%d %H:%M:%S' )
+  emini500 = emini500[ nrow(emini500) : 1, ]
+  row.names(emini500) = NULL
+  emini500 = TANALYSIS.1500(df = emini500)
+  
+  emini = data.frame( Time=integer(0), Open=integer(0), High=integer(0), Low=integer(0), Close=integer(0), count=integer(0), raw.id=integer(0), tick.id=integer(0), OHLC.count=integer(0) )
+  emini[1,1:9]=c( 0, 0, 0, 0, 0, 0, 1, 1, 1 )
+  emini = OHLC( tick.wanted = 1500, raw.df = raw, tick.df = emini )
+  emini1500 = emini[ , 1:5 ]
+  emini1500 = emini1500[ complete.cases( emini1500 ), ]
+  emini1500$Time = strptime( emini1500$Time, format='%Y-%m-%d %H:%M:%S' )
+  emini1500 = emini1500[ nrow(emini1500) : 1, ]
+  row.names(emini1500) = NULL
+  emini1500 = TANALYSIS.4500(df = emini1500)
+  
+  if ( emini500[ 1, 6 ] > 70 && emini500[ 1, 5 ] > emini500[ 1, 7 ] && emini500[ 2, 5 ] > emini500[ 2, 7 ] && emini1500[ 1, 5 ] > emini1500[ 1, 7 ] 
+       && LossCounter <= 2 && Position == 0){
+    tws=twsConnect()
+    id = reqIds( tws )
+    placeOrder( tws, twsFUT( 'ES', 'GLOBEX', '201509'), twsOrder(id, 'SELL', TrdSize, 'MKT'))
+    twsDisconnect(tws)
+    OrderID = OrderID + 1
+    Position = Position - 1
+  }else if( emini500[ 1, 6 ] < 25 && emini500[ 1, 5 ] < emini500[ 1, 8 ] && emini500[ 2, 5 ] < emini500[ 2, 8 ] && emini1500[ 1, 5 ] < emini1500[ 1, 8 ] 
+            && LossCounter <= 2 && Position == 0 ){
+    tws=twsConnect()
+    id = reqIds(tws)
+    placeOrder( tws, twsFUT( 'ES', 'GLOBEX', '201509'), twsOrder(id, 'BUY', TrdSize, 'MKT'))
+    twsDisconnect( tws )
+    OrderID = OrderID + 1
+    Position = Position + 1
+  }else if( Position == -1 && emini500[ 1, 6 ] < 25 | emini500[ 1, 5 ] < emini500[ 1, 8 ]){
+    tws=twsConnect()
+    id = reqIds( tws )
+    placeOrder( tws, twsFUT( 'ES', 'GLOBEX', '201509'), twsOrder(id, 'BUY', TrdSize, 'MKT'))
+    twsDisconnect(tws)
+    OrderID = OrderID + 1
+    Position = Position + 1
+    LossCounter = 0
+  }else if( Position == 1 && emini500[ 1, 6 ] > 70 | emini500[ 1, 5 ] > emini500[ 1, 7 ]){
+    tws=twsConnect()
+    id = reqIds( tws )
+    placeOrder( tws, twsFUT( 'ES', 'GLOBEX', '201509'), twsOrder(id, 'SELL', TrdSize, 'MKT'))
+    twsDisconnect( tws )
+    OrderID = OrderID + 1
+    Position = Position - 1
+    LossCounter = 0
+  }else if( Position != 0){
+    PositionIB = PositionCheck()
+    if ( PositionIB == 0 &&  Position != 0){
+      Position = 0
+      LossCounter = LossCounter + 1
+    }
+    # Probably best to create a function that gets current position from IB and test to if the stop loss has been triggered and returns a "Position = 0"
+    # Functions only return 1 variable, need to figure out how to update LossCounter. Maybe an intermediate step on "Position = 0".  Have the PositionCheck function return
+    # a '0' and then say if( Position != 0 & PositionCheck == 0){ LossCounter = LossCounter + 1 & Position = 0}
+    # I believe I have to have an 'ID' with this request too, will use 'OrderID' and increment it if that's the case
+  }
+    
+# Not really sure I care about charting but if I decide to here's the snippet to make it work
+# emini500=as.xts( emini500[ , -1], order.by = emini500[ , 1] ) 
+# barChart(emini500)
+# addBBands()
+
+# PAUSING loop for n seconds
+Sys.sleep( 30 )
+}
+MF=function( row.start=1, n=14, df ){
+  x = 0
+  y = 0
+  z = 0
+  for ( i in ( row.start : ( row.start + n ))){
+    if ((( row.start + n) < nrow( df )) && sum( df[ i, 3:5 ]) > sum( df[ ( i + 1 ), 3:5 ] )){
+      x = x +( sum( df[ i, 3:5 ]) * n )
+    }
+    y = y + ( sum( df[ i, 3:5 ]) * n )
+  }
+  z = 100 * ( x/y )
+  return( z )
+}
+
+# Bollinger Band function. Same as with the MF function, TTR has a BB function but it doesn't let me pull the upper/lower bands separately
+# in order to make logic decisions.
+BBUP = function( row.start=1, n=10, nDevs=3, df ){
+  sma = 0
+  sqrsum = 0
+  bbup = 0
+  sma = sum( df[( row.start : ( row.start + (n-1) )), 5 ])/n
+  sqrsum = sd( df[( row.start : ( row.start + (n-1) )), 5 ])
+  bbup = sma + (sqrsum * nDevs)
+  return( bbup )
+}
+BBDWN = function( row.start=1, n10, nDevs=-3, df ){
+  sma = 0
+  sqrsum = 0
+  bbdwn = 0
+  sma = sum( df[( row.start : ( row.start + (n-1) )), 5 ])/n
+  sqrsum = sd( df[( row.start : ( row.start + (n-1) )), 5 ])
+  bbdwn = sma + (sqrsum * nDevs)
+  return( bbdwn )
+}
+
+# Function to loop over the completed tick df in order to add a column for each technical: MF, BBUP & BBDWN
+TANALYSIS.1500 = function( df ){
+  for (t in ( 1 : nrow( df ))){
+    df[ t, 6 ] = MF( row.start = t, df=emini500 )
+    df[ t, 7 ] = BBUP( row.start = t, df=emini500 )
+    df[ t, 8 ] = BBDWN( row.start = t, df=emini500 )
+  }
+  return( df )
+}
+TANALYSIS.4500 = function( df ){
+  for (t in ( 1 : nrow( df ))){
+    df[ t, 6 ] = MF( row.start = t, df=emini1500 )
+    df[ t, 7 ] = BBUP( row.start = t, df=emini1500 )
+    df[ t, 8 ] = BBDWN( row.start = t, df=emini1500 )
+  }
+  return( df )
+}
+PositionCheck = function( ... ){
+  tws=twsConnect()
+  myacct = reqAccountUpdates(tws)
+  folio = myacct[[2]][[1]]$portfolioValue$position
+  twsDisconnect(tws)
+  return ( folio )
+}
