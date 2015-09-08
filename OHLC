@@ -99,33 +99,6 @@ OHLC=function( tick.wanted=1500, raw.df, tick.df, ... ){
         raw.df[ tick.df[ 1, 7 ], 4 ]= 6
         tick.df[ 1, 7 ] = tick.df[ 1, 7 ] + 1
         # Seventh is checking to see if next value will be larger than tick wanted & if the remainder is equal to tick wanted
-      }else if (( tick.df[ 1, 6 ] + raw.df[ tick.df[ 1, 7 ], 3 ] ) > tick.wanted && (( tick.df[ 1, 6 ] + raw.df[ tick.df[ 1, 7 ], 3 ]) - tick.wanted) == tick.wanted ){
-        if ( tick.df[ tick.df[ 1, 8 ], 3 ] <= raw.df[ tick.df[ 1, 7 ], 2 ]){
-          tick.df[ tick.df[ 1, 8 ], 3 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
-        }else if( tick.df[ tick.df[ 1, 8 ], 4 ] >= raw.df[ tick.df[ 1, 7 ], 2 ] ){
-          tick.df[ tick.df[ 1, 8 ], 4 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
-        } 
-        # Incrementing counts
-        tick.df[ tick.df[ 1, 8 ], 5 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
-        tick.df[ 1, 6 ] = 0
-        tick.df[ 1, 8 ] = tick.df[ 1, 8 ] + 1
-        tick.df[ 1, 9 ] = 1
-        tick.df[ tick.df[ 1, 8 ], 1 ] = raw.df[ tick.df[ 1, 7 ], 1 ]
-        tick.df[ tick.df[ 1, 8 ], 2 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
-        tick.df[ tick.df[ 1, 8 ], 3 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
-        tick.df[ tick.df[ 1, 8 ], 4 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
-        tick.df[ tick.df[ 1, 8 ], 5 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
-        raw.df[ tick.df[ 1, 7 ], 4 ]= 7
-        tick.df[ 1, 7 ] = tick.df[ 1, 7 ] + 1
-        tick.df[ 1, 8 ] = tick.df[ 1, 8 ] + 1
-        # Eighth is checking to see if next value will be larger than tick wanted & if the remainder is greater than tick wanted
-      }else if (( tick.df[ 1, 6 ] + raw.df[ tick.df[ 1, 7 ], 3 ] ) > tick.wanted && (( tick.df[ 1, 6 ] + raw.df[ tick.df[ 1, 7 ], 3 ]) - tick.wanted) > tick.wanted ){
-        # Looping over High and Low to test if the current raw.df$Price is < or > than placeholder values
-        if ( tick.df[ tick.df[ 1, 8 ], 3 ] <= raw.df[ tick.df[ 1, 7 ], 2 ]){
-          tick.df[ tick.df[ 1, 8 ], 3 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
-        }else if( tick.df[ tick.df[ 1, 8 ], 4 ] >= raw.df[ tick.df[ 1, 7 ], 2 ] ){
-          tick.df[ tick.df[ 1, 8 ], 4 ] = raw.df[ tick.df[ 1, 7 ], 2 ]
-        }
       }
       return (tick.df)
       }
