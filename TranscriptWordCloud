@@ -1,0 +1,56 @@
+setwd ( 'C:\\Users\\Matt\\Desktop\\R Work\\WordCloud' )
+
+transcript.wordcloud <- function(x, type=c("text", "url", "file"), lang="english", excludeWords=c('disney','quarter','year','results','well','will','can','know','next','just','think','tom','bob','ben','christine','ceo','cfo','bit','question','also','see','lower',
+                                                                                                  'first','second','third','said','take','last','higher','going','two','iger','thank','operator','call','make','want','please','front','sales','fiscal','talk',
+                                                                                                  'due','still','like','best', 'many', 'coo','lot','way','much','now','basic','one','let','lowell','svp','per','ways','huge','say','ubs','really','believe',
+                                                                                                  'around','strong','chairman','comes','week','thanks','little','less','part','great','actually','continue','david','put','even','kind','okay','get','fact',
+                                                                                                  'sort','key','back','top','sort','alexia','michael','right','look','mccarthy','obviously','offset','mid','overall','doug','view','ahead','outlook','seen',
+                                                                                                  'available','give','basis','good','todd','total','cohen','across','driven','including','singer','forward','turn','low','increase','past','prior','three','sevp',
+                                                                                                  'revenue','jessica','saw','versus','feel','big','linear','far','come','quite','terms','things','guess'), textStemming=FALSE,  colorPalette="Dark2", min.freq=3, max.words=200)
+{
+  library("tm")
+  library("SnowballC")
+  library("wordcloud")
+  library("RColorBrewer")
+  
+  text <- readLines(x)
+  docs <- Corpus(VectorSource(text))
+  docs <- tm_map(docs, content_transformer(tolower))
+  docs <- tm_map(docs, removeNumbers)
+  docs <- tm_map(docs, removeWords, stopwords(lang))
+  docs <- tm_map(docs, removePunctuation)
+  docs <- tm_map(docs, stripWhitespace)
+  # Remove my stopwords
+  if(!is.null(excludeWords)) 
+    docs <- tm_map(docs, removeWords, excludeWords) 
+  # Text stemming
+  if(textStemming) docs <- tm_map(docs, stemDocument)
+  # Create term-document matrix
+  tdm <- TermDocumentMatrix(docs)
+  m <- as.matrix(tdm)
+  v <- sort(rowSums(m),decreasing=TRUE)
+  d <- data.frame(word = names(v),freq=v)
+  # check the color palette name 
+  if(!colorPalette %in% rownames(brewer.pal.info)) colors = colorPalette
+  else colors = brewer.pal(8, colorPalette) 
+  # Plot the word cloud
+  set.seed(777)
+  wordcloud(d$word,d$freq, min.freq=min.freq, max.words=max.words,
+            random.order=FALSE, rot.per=0.35, 
+            use.r.layout=FALSE, colors=colors)
+  
+  invisible(list(tdm=tdm, freqTable = d))
+}
+result=transcript.wordcloud( 'dis2015q3.txt',type='text')
+tdm <- result$tdm
+freqTable <- result$freqTable
+row.names(freqTable)=NULL
+
+barplot(freqTable[1:10,]$freq, las = 2, 
+        names.arg = freqTable[1:10,]$word,
+        col ="lightblue", main ="Most frequent words",
+        ylab = "Word frequencies")
+
+# finding a correlation between one word with all the others:
+findAssocs(tdm, terms = 'espn', corlimit = 0.3)
+  
