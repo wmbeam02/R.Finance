@@ -1,12 +1,11 @@
-setwd ( 'C:\\Users\\Matt\\Desktop\\R Work\\WordCloud' )
-
-transcript.wordcloud <- function(x, type=c("text", "url", "file"), lang="english", excludeWords=c('disney','quarter','year','results','well','will','can','know','next','just','think','tom','bob','ben','christine','ceo','cfo','bit','question','also','see','lower',
-                                                                                                  'first','second','third','said','take','last','higher','going','two','iger','thank','operator','call','make','want','please','front','sales','fiscal','talk',
-                                                                                                  'due','still','like','best', 'many', 'coo','lot','way','much','now','basic','one','let','lowell','svp','per','ways','huge','say','ubs','really','believe',
-                                                                                                  'around','strong','chairman','comes','week','thanks','little','less','part','great','actually','continue','david','put','even','kind','okay','get','fact',
+transcript.wordcloud <- function(x, type=c("text", "url", "file"), textStemming=F, lang="english", colorPalette="Dark2", min.freq=3, max.words=200, excludeWords=c('disney','quarter','year','results','well','will','can','know','next','just','think','tom','bob','ben','christine','ceo','cfo','bit','question','also','see','lower',
+                                                                                                  'anthony','years','product','products','first','second','third','said','take','last','higher','going','two','iger','thank','operator','call','make','want','please','front','sales','fiscal','talk',
+                                                                                                  'number','due','still','like','best', 'many', 'coo','lot','way','much','now','basic','one','let','lowell','svp','per','ways','huge','say','ubs','really','believe',
+                                                                                                  'got','benefit','around','strong','chairman','comes','week','thanks','little','less','part','great','actually','continue','david','put','even','kind','okay','get','fact',
                                                                                                   'sort','key','back','top','sort','alexia','michael','right','look','mccarthy','obviously','offset','mid','overall','doug','view','ahead','outlook','seen',
                                                                                                   'available','give','basis','good','todd','total','cohen','across','driven','including','singer','forward','turn','low','increase','past','prior','three','sevp',
-                                                                                                  'revenue','jessica','saw','versus','feel','big','linear','far','come','quite','terms','things','guess'), textStemming=FALSE,  colorPalette="Dark2", min.freq=3, max.words=200)
+                                                                                                  'million','growth','time','revenue','jessica','saw','versus','feel','big','linear','far','come','quite','terms','things','guess','new','jay','value','business','world'))
+                                 
 {
   library("tm")
   library("SnowballC")
@@ -35,21 +34,57 @@ transcript.wordcloud <- function(x, type=c("text", "url", "file"), lang="english
   else colors = brewer.pal(8, colorPalette) 
   # Plot the word cloud
   set.seed(777)
-  wordcloud(d$word,d$freq, min.freq=min.freq, max.words=max.words,
-            random.order=FALSE, rot.per=0.35, 
-            use.r.layout=FALSE, colors=colors)
+  
+#   If you want the 'pretty picture' then this is the snippet for that, prefer the tables and barcharts
+#   wordcloud(d$word,d$freq, min.freq=min.freq, max.words=max.words,
+#             random.order=FALSE, rot.per=0.35, 
+#             use.r.layout=FALSE, colors=colors)
   
   invisible(list(tdm=tdm, freqTable = d))
 }
-result=transcript.wordcloud( 'dis2015q3.txt',type='text')
-tdm <- result$tdm
-freqTable <- result$freqTable
-row.names(freqTable)=NULL
 
-barplot(freqTable[1:10,]$freq, las = 2, 
-        names.arg = freqTable[1:10,]$word,
-        col ="lightblue", main ="Most frequent words",
-        ylab = "Word frequencies")
+resultQ3 = transcript.wordcloud( 'dis2015q3.txt',type='text' )
+tdmQ3 = resultQ3$tdm
+freqTableQ3 = resultQ3$freqTable
+row.names(freqTableQ3) = NULL
+
+resultQ2 = transcript.wordcloud( 'dis2015q2.txt',type='text' )
+tdmQ2 = resultQ2$tdm
+freqTableQ2 = resultQ2$freqTable
+row.names(freqTableQ2) = NULL
+
+comboTable2 = merge( freqTableQ3, freqTableQ2, by = 'word', all = T )
+
+for ( i in 1:nrow( comboTable2 )){
+  if ( is.na( comboTable2[ i, 3 ]) && comboTable2[ i, 2 ] >= 5 ){
+    comboTable2[ i, 3 ] = 1
+    }else if ( is.na( comboTable2[ i, 2 ]) && comboTable2[ i, 3 ] >= 5 ){
+      comboTable2[ i, 2 ] = 1  
+    }
+}
+# Getting rid of the low usage matching words
+comboTable = comboTable2[ complete.cases( comboTable2 ), ]
+comboTable = comboTable[!( comboTable[ , 2 ] == 1 & comboTable[ ,3 ] == 1 ),]
+comboTable = comboTable[!( comboTable[ , 2 ] == 2 & comboTable[ ,3 ] == 2 ),]
+comboTable = comboTable[!( comboTable[ , 2 ] == 3 & comboTable[ ,3 ] == 3 ),]
+# Adding % move column 
+for (i in 1:nrow(comboTable)){
+  comboTable[ i, 4 ] = round( ( comboTable[ i, 2 ] / comboTable[ i, 3 ] ), 2)
+}
+row.names(comboTable) = NULL
+# Percentage time
+PercentMove=comboTable[order( comboTable[ , 4 ], decreasing = T), ]
+PercentMoveUp = PercentMove[( PercentMove[ , 2 ] > 10 & PercentMove[ , 4 ] >= 1.5),]
+row.names(PercentMoveUp) = NULL
+PercentMoveDwn = PercentMove[( PercentMove[ , 3 ] >= 10 & PercentMove[ , 4 ] <= .5),]
+row.names(PercentMoveDwn) = NULL
+freqTable = comboTable[order( comboTable[ , 2 ], decreasing = T), ]
+row.names(freqTable) = NULL
+# Plotting time
+barplot(freqTable[1:20, 2], las = 2, 
+        names.arg = freqTable[1:20, 1],
+        col ="lightblue", main ="Most Frequent Words Q3",
+        ylab = "Word Count")
 
 # finding a correlation between one word with all the others:
 findAssocs(tdm, terms = 'espn', corlimit = 0.3)
