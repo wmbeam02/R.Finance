@@ -26,7 +26,8 @@ start = paste(Sys.Date(), ' 09:00:00 CDT')
 end = paste(Sys.Date(), ' 18:40:00 CDT')
 
 while (( Sys.time() > start ) && ( Sys.time() < end )){
-  raw = fetch( dbSendQuery( conn, "SELECT time, last, volume FROM raw" ))
+  conn=dbConnect( MySQL(), user='root', password='password', host='localhost', dbname='test' )
+  raw = fetch( dbSendQuery( conn, "SELECT time, last, volume FROM raw" ), n = -1)
   dbDisconnect( conn )
    
   emini = data.frame( Time=integer(0), Open=integer(0), High=integer(0), Low=integer(0), Close=integer(0), count=integer(0), raw.id=integer(0), tick.id=integer(0), OHLC.count=integer(0) )
