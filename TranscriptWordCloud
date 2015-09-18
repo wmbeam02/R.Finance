@@ -1,10 +1,12 @@
-transcript.wordcloud <- function(x, type=c("text", "url", "file"), textStemming=F, lang="english", colorPalette="Dark2", min.freq=3, max.words=200, excludeWords=c('disney','quarter','year','results','well','will','can','know','next','just','think','tom','bob','ben','christine','ceo','cfo','bit','question','also','see','lower',
+setwd ( 'C:\\Users\\Matt\\Desktop\\R Work\\WordCloud' )
+
+transcript.wordcloud <- function( x, type=c( "text", "url", "file" ), textStemming=F, lang="english", colorPalette="Dark2", min.freq=3, max.words=200, excludeWords=c('disney','quarter','year','results','well','will','can','know','next','just','think','tom','bob','ben','christine','ceo','cfo','bit','question','also','see','lower',
                                                                                                   'anthony','years','product','products','first','second','third','said','take','last','higher','going','two','iger','thank','operator','call','make','want','please','front','sales','fiscal','talk',
                                                                                                   'number','due','still','like','best', 'many', 'coo','lot','way','much','now','basic','one','let','lowell','svp','per','ways','huge','say','ubs','really','believe',
                                                                                                   'got','benefit','around','strong','chairman','comes','week','thanks','little','less','part','great','actually','continue','david','put','even','kind','okay','get','fact',
                                                                                                   'sort','key','back','top','sort','alexia','michael','right','look','mccarthy','obviously','offset','mid','overall','doug','view','ahead','outlook','seen',
-                                                                                                  'available','give','basis','good','todd','total','cohen','across','driven','including','singer','forward','turn','low','increase','past','prior','three','sevp',
-                                                                                                  'million','growth','time','revenue','jessica','saw','versus','feel','big','linear','far','come','quite','terms','things','guess','new','jay','value','business','world'))
+                                                                                                  'chief','officer','operating','analyst','unidentified','available','give','basis','good','todd','total','cohen','across','driven','including','singer','forward','turn','low','increase','past','prior','three','sevp',
+                                                                                                  'excited','whole','staggs','important','indiscernible','million','growth','time','revenue','jessica','saw','versus','feel','big','linear','far','come','quite','terms','things','guess','new','jay','value','business','world'))
                                  
 {
   library("tm")
@@ -34,14 +36,14 @@ transcript.wordcloud <- function(x, type=c("text", "url", "file"), textStemming=
   else colors = brewer.pal(8, colorPalette) 
   # Plot the word cloud
   set.seed(777)
-  
-#   If you want the 'pretty picture' then this is the snippet for that, prefer the tables and barcharts
-#   wordcloud(d$word,d$freq, min.freq=min.freq, max.words=max.words,
-#             random.order=FALSE, rot.per=0.35, 
-#             use.r.layout=FALSE, colors=colors)
+ # If you want the 'pretty picture' then this is the snippet for that, prefer the tables and barcharts
+  wordcloud(d$word,d$freq, min.freq=min.freq, max.words=max.words,
+            random.order=FALSE, rot.per=0.35, 
+            use.r.layout=FALSE, colors=colors)
   
   invisible(list(tdm=tdm, freqTable = d))
 }
+#______________________________________________________________________End Of Function_______________________________________________________________________________
 
 resultQ3 = transcript.wordcloud( 'dis2015q3.txt',type='text' )
 tdmQ3 = resultQ3$tdm
@@ -72,7 +74,11 @@ for (i in 1:nrow(comboTable)){
   comboTable[ i, 4 ] = round( ( comboTable[ i, 2 ] / comboTable[ i, 3 ] ), 2)
 }
 row.names(comboTable) = NULL
-# Percentage time
+# Renaming Columns
+colnames(comboTable)[2] = 'Q3'
+colnames(comboTable)[3] = 'Q2'
+colnames(comboTable)[4] = 'Percent_Change'
+# Percentage values manipulation
 PercentMove=comboTable[order( comboTable[ , 4 ], decreasing = T), ]
 PercentMoveUp = PercentMove[( PercentMove[ , 2 ] > 10 & PercentMove[ , 4 ] >= 1.5),]
 row.names(PercentMoveUp) = NULL
@@ -80,12 +86,27 @@ PercentMoveDwn = PercentMove[( PercentMove[ , 3 ] >= 10 & PercentMove[ , 4 ] <= 
 row.names(PercentMoveDwn) = NULL
 freqTable = comboTable[order( comboTable[ , 2 ], decreasing = T), ]
 row.names(freqTable) = NULL
-# Plotting time
-barplot(freqTable[1:20, 2], las = 2, 
-        names.arg = freqTable[1:20, 1],
-        col ="lightblue", main ="Most Frequent Words Q3",
-        ylab = "Word Count")
+# Cleaning up the environment
+rm( PercentMove, comboTable2, freqTableQ2, freqTableQ3 )
+# Plotting time Frequency of Data
+library('ggplot2')
+par( mfrow = c( 1, 2 ), oma = c( 2, 0, 0, 0 ))
+barplot( freqTable[ 1:17, 2 ], las = 2, 
+        names.arg = freqTable[ 1:17, 1 ],
+        col ="lightblue", main ="Q3",
+        ylab = "Word Count-Highest Frequency" )
+barplot( freqTable[ 1:17, 3 ], las = 2, 
+         names.arg = freqTable[ 1:17, 1 ],
+         col ="lightblue", main ="Q2" )
+# Plotting % Moves in Data
+par( mfrow = c( 1, 2 ), oma = c( 2, 0, 0, 0 ))
+barplot( PercentMoveUp[ , 4 ], las = 2, 
+         names.arg = PercentMoveUp[ , 1 ],
+       col ="lightblue", main ="% Change Up Q/Q",
+         ylab = "Word Count-Highest Frequency" )
+barplot( PercentMoveDwn[ , 4 ], las = 2, 
+         names.arg = PercentMoveDwn[ , 1 ],
+         col ="lightblue", main ="% Change Down Q/Q" )
 
-# finding a correlation between one word with all the others:
-findAssocs(tdm, terms = 'espn', corlimit = 0.3)
-  
+# finding a correlation between one word with all the others, just something I'm toying with right now
+findAssocs(tdmQ3, terms = 'espn', corlimit = 0.3)
